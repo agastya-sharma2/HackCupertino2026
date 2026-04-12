@@ -1,0 +1,28 @@
+<html>
+    <head>
+        <link rel="stylesheet" href="{{ url_for('static', filename='style.css')}}">
+    </head>
+        <body>
+            <h1>{{stretch}}</h1>
+            <progress id="progressBar" val="0" max="100"></progress>
+            <h5>{{time}}</h5>
+            <button onclick="startProgress()">Start</button>
+
+            <script>
+                function startProgress() {
+                  let progressBar = document.getElementById('progressBar');
+                  let value = 0;
+            
+                  let interval = setInterval(function() {
+                    value += 10;
+                    progressBar.value = value;
+                    
+                    if (value >= 100) {
+                      clearInterval(interval);
+                    }
+                  }, 500); // Increase progress every 500ms
+                }
+              </script>
+
+        </body>
+</html>
