@@ -14,4 +14,4 @@ Despite the disagreements, we pulled through and have a fully working product to
 ## What we learned
 We learned how to organize code, use GitHub, integrate AI APIs into a project, and how to prepare for a workout. 
 ## What's next for Athlet
-Add personas to personalize every users account to fine tune advice to them.n
+Add personas to personalize every users account to fine tune advice to them.
