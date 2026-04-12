@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fitness Dashboard — Login</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;700;800&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #007bff;
+      --primary-dark: #0056cc;
+      --accent: #f0b429;
+      --dark: #0d1117;
+      --dark-2: #161b22;
+      --dark-3: #21262d;
+      --text-muted: #8b949e;
+    }
+
+    html, body {
+      height: 100%;
+      font-family: 'Barlow', sans-serif;
+    }
+
+    .wrapper {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    .panel-left {
+      flex: 1.1;
+      background: var(--dark);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 3rem;
+      overflow: hidden;
+    }
+
+    /* animated background rings */
+    .panel-left::before,
+    .panel-left::after {
+      content: '';
+      position: absolute;
+      border-radius: 50%;
+      border: 1.5px solid rgba(0,123,255,0.15);
+      animation: pulse 6s ease-in-out infinite;
+    }
+    .panel-left::before {
+      width: 600px; height: 600px;
+      bottom: -200px; right: -180px;
+      animation-delay: 0s;
+    }
+    .panel-left::after {
+      width: 380px; height: 380px;
+      bottom: -80px; right: -60px;
+      animation-delay: 1.5s;
+      border-color: rgba(240,180,41,0.12);
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 0.6; }
+      50%       { transform: scale(1.05); opacity: 1; }
+    }
+
+    .ring-extra {
+      position: absolute;
+      width: 220px; height: 220px;
+      border-radius: 50%;
+      border: 1px solid rgba(0,123,255,0.1);
+      bottom: 40px; right: 60px;
+      animation: pulse 6s ease-in-out infinite;
+      animation-delay: 3s;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      position: relative;
+      z-index: 1;
+    }
+    .brand-icon {
+      width: 44px; height: 44px;
+      background: var(--primary);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      color: #fff;
+    }
+    .brand-name {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 800;
+      font-size: 2rem;
+      letter-spacing: 0.5px;
+      color: #fff;
+    }
+
+    .hero-text {
+      position: relative;
+      z-index: 1;
+    }
+    .hero-text .tagline {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 800;
+      font-size: clamp(2.4rem, 4vw, 3.8rem);
+      line-height: 1.05;
+      color: #fff;
+      text-transform: uppercase;
+      letter-spacing: -0.5px;
+    }
+    .hero-text .tagline span {
+      color: var(--accent);
+    }
+    .hero-text .sub {
+      margin-top: 1rem;
+      font-size: 1rem;
+      color: var(--text-muted);
+      font-weight: 300;
+      max-width: 340px;
+      line-height: 1.6;
+    }
+
+    .stats-row {
+      display: flex;
+      gap: 2rem;
+      position: relative;
+      z-index: 1;
+    }
+    .stat {
+      display: flex;
+      flex-direction: column;
+    }
+    .stat-num {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 700;
+      font-size: 1.8rem;
+      color: #fff;
+    }
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+    .stat-divider {
+      width: 1px;
+      background: var(--dark-3);
+      align-self: stretch;
+    }
+
+    /* ── RIGHT PANEL ── */
+    .panel-right {
+      flex: 0.9;
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 3rem 2.5rem;
+    }
+
+    .login-box {
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .login-box h2 {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 800;
+      font-size: 2rem;
+      color: #0d1117;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 0.25rem;
+    }
+    .login-box .welcome-sub {
+      font-size: 0.9rem;
+      color: #6c757d;
+      margin-bottom: 2.2rem;
+    }
+
+    .form-label {
+      font-size: 0.8rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #495057;
+      margin-bottom: 0.4rem;
+    }
+
+    .form-control {
+      border: 1.5px solid #dee2e6;
+      border-radius: 10px;
+      padding: 0.65rem 1rem;
+      font-size: 0.95rem;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .form-control:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(0,123,255,0.12);
+      outline: none;
+    }
+
+    .input-icon-wrapper {
+      position: relative;
+    }
+    .input-icon-wrapper .form-control {
+      padding-left: 2.7rem;
+    }
+    .input-icon {
+      position: absolute;
+      left: 0.95rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #adb5bd;
+      font-size: 0.95rem;
+      pointer-events: none;
+    }
+
+    .btn-login {
+      width: 100%;
+      padding: 0.75rem;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      margin-top: 0.5rem;
+    }
+    .btn-login:hover { background: var(--primary-dark); transform: translateY(-1px); }
+    .btn-login:active { transform: translateY(0); }
+
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin: 1.4rem 0;
+      color: #adb5bd;
+      font-size: 0.8rem;
+    }
+    .divider::before, .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: #e9ecef;
+    }
+
+    .register-link {
+      text-align: center;
+      font-size: 0.88rem;
+      color: #6c757d;
+    }
+    .register-link a {
+      color: var(--primary);
+      font-weight: 500;
+      text-decoration: none;
+    }
+    .register-link a:hover { text-decoration: underline; }
+
+    .alert-error {
+      background: #fff5f5;
+      border: 1px solid #f5c6cb;
+      color: #721c24;
+      border-radius: 10px;
+      padding: 0.75rem 1rem;
+      font-size: 0.88rem;
+      margin-bottom: 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      .panel-left { display: none; }
+      .panel-right { padding: 2rem 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="wrapper">
+
+  <div class="panel-left">
+    <div class="ring-extra"></div>
+
+    <div class="brand">
+      <div class="brand-icon"><i class="fas fa-dumbbell"></i></div>
+      <span class="brand-name">Athlets</span>
+    </div>
+
+    <div class="hero-text">
+      <div class="tagline">
+        Train<br>Work<br><span>Win</span>
+      </div>
+      <p class="sub">
+        This is a fitness dashboard after all, so we want users to get out there and start tracking their workouts, meals, games, and progress — all in one place.
+      </p>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat">
+        <span class="stat-num">4</span>
+        <span class="stat-label">Tracking Modules</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat">
+        <span class="stat-num">∞</span>
+        <span class="stat-label">Potential</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat">
+        <span class="stat-num">1</span>
+        <span class="stat-label">Goal: Win</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel-right">
+    <div class="login-box">
+
+      <h2>Welcome back</h2>
+      <p class="welcome-sub">Sign in to your dashboard to continue.</p>
+
+      {% if error %}
+      <div class="alert-error">
+        <i class="fas fa-exclamation-circle"></i> {{ error }}
+      </div>
+      {% endif %}
+
+      <form method="POST" action="/login">
+        <div class="mb-3">
+          <label class="form-label">Username</label>
+          <div class="input-icon-wrapper">
+            <i class="fas fa-user input-icon"></i>
+            <input type="text" class="form-control" name="username"
+                   placeholder="Enter your username" required autofocus>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Password</label>
+          <div class="input-icon-wrapper">
+            <i class="fas fa-lock input-icon"></i>
+            <input type="password" class="form-control" name="password"
+                   placeholder="Enter your password" required>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-login">
+          <i class="fas fa-sign-in-alt me-1"></i> Sign In
+        </button>
+      </form>
+
+      <div class="divider">or</div>
+
+      <p class="register-link">
+        Don't have an account? <a href="/register">Create one</a>
+      </p>
+
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

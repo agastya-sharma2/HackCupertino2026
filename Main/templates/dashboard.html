@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fitness Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body { background-color: #f0f2f5; }
+    .card { border: none; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    .progress { height: 20px; border-radius: 10px; }
+
+    /* ── AI Thinking Loading Bar ─────────────────────────────────────────── */
+    .loading-overlay {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+      gap: 1rem;
+    }
+    .loading-overlay.visible { display: flex; }
+    .loading-overlay p { color: #8b949e; font-size: 0.92rem; margin: 0; letter-spacing: 0.3px; }
+
+    .thinking-bar-wrap {
+      width: 100%;
+      max-width: 420px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 999px;
+      height: 6px;
+      overflow: hidden;
+      position: relative;
+    }
+    .thinking-bar {
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #007bff 0%, #60a5fa 40%, #a78bfa 70%, #007bff 100%);
+      background-size: 300% 100%;
+      animation: thinking-sweep 1.6s ease-in-out infinite;
+      width: 55%;
+      position: absolute;
+    }
+    @keyframes thinking-sweep {
+      0%   { left: -60%; }
+      100% { left: 110%; }
+    }
+
+    .thinking-dots {
+      display: flex;
+      gap: 5px;
+      align-items: center;
+    }
+    .thinking-dots span {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #60a5fa;
+      animation: dot-pulse 1.4s ease-in-out infinite;
+    }
+    .thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes dot-pulse {
+      0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+      40%           { transform: scale(1);   opacity: 1; }
+    }
+
+    /* ── AI hero shell ───────────────────────────────────────────────────── */
+    .ai-hero {
+      background: linear-gradient(135deg, #0d1117 0%, #1a2332 60%, #0d2137 100%);
+      border-radius: 20px;
+      padding: 2.5rem;
+      color: #fff;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+    }
+    .ai-hero h2 { font-size: 1.9rem; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 0.2rem; }
+    .ai-hero .subtitle { color: #8b949e; font-size: 0.95rem; margin-bottom: 2rem; }
+
+    .ai-form .form-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.8px; color: #8b949e; margin-bottom: 0.3rem; }
+    .ai-form .form-control,
+    .ai-form .form-select {
+      background: rgba(255,255,255,0.07);
+      border: 1.5px solid rgba(255,255,255,0.1);
+      color: #fff; border-radius: 10px; font-size: 0.9rem;
+    }
+    .ai-form .form-control::placeholder { color: #555e6d; }
+    .ai-form .form-control:focus,
+    .ai-form .form-select:focus { background: rgba(255,255,255,0.1); border-color: #007bff; color: #fff; box-shadow: 0 0 0 3px rgba(0,123,255,0.2); outline: none; }
+    .ai-form .form-select option { background: #1a2332; color: #fff; }
+    .ai-form textarea.form-control { min-height: 90px; resize: vertical; }
+
+    .ai-section-label {
+      font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px;
+      color: #60a5fa; font-weight: 700; margin: 1.5rem 0 0.75rem;
+      padding-bottom: 0.4rem; border-bottom: 1px solid rgba(96,165,250,0.2);
+    }
+
+    .btn-generate {
+      background: #007bff; color: #fff; border: none; border-radius: 10px;
+      padding: 0.75rem 1.5rem; font-weight: 700; font-size: 1rem;
+      transition: background 0.2s, transform 0.1s; width: 100%;
+    }
+    .btn-generate:hover   { background: #0056cc; transform: translateY(-1px); color: #fff; }
+    .btn-generate:disabled{ background: #334155; cursor: not-allowed; transform: none; }
+
+    /* ── Nav links (Flask routes) ────────────────────────────────────────── */
+    .nav-pills-dark {
+      display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.5rem;
+    }
+    .nav-pills-dark a {
+      background: rgba(255,255,255,0.07);
+      border: 1.5px solid rgba(255,255,255,0.1);
+      color: #cbd5e1; border-radius: 8px;
+      padding: 0.4rem 1rem; font-size: 0.85rem; font-weight: 600;
+      text-decoration: none; transition: background 0.2s, color 0.2s;
+    }
+    .nav-pills-dark a:hover { background: rgba(255,255,255,0.14); color: #fff; }
+    .nav-pills-dark a.active { background: #007bff; border-color: #007bff; color: #fff; }
+
+    /* ── Plan result cards ───────────────────────────────────────────────── */
+    .plan-result { display: none; margin-top: 2rem; }
+    .plan-result.visible { display: block; }
+
+    .plan-section {
+      background: rgba(255,255,255,0.05);
+      border: 1.5px solid rgba(255,255,255,0.1);
+      border-radius: 14px; padding: 1.25rem 1.5rem; margin-bottom: 1rem;
+    }
+    .plan-section-title {
+      font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1px;
+      font-weight: 700; margin-bottom: 0.9rem; display: flex; align-items: center; gap: 0.4rem;
+    }
+    .plan-section-title.food    { color: #f59e0b; }
+    .plan-section-title.warmup  { color: #34d399; }
+    .plan-section-title.workout { color: #60a5fa; }
+    .plan-section-title.cooldown{ color: #a78bfa; }
+    .plan-section-title.sources { color: #8b949e; }
+
+    .plan-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; color: #e2e8f0; }
+    .plan-table th { color: #8b949e; font-weight: 600; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.6px; padding: 0 0 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .plan-table td { padding: 0.55rem 0; border-bottom: 1px solid rgba(255,255,255,0.05); vertical-align: top; line-height: 1.5; }
+    .plan-table tr:last-child td { border-bottom: none; }
+    .plan-table .label-col { color: #f3f4f6; font-weight: 600; white-space: nowrap; padding-right: 1rem; }
+    .plan-table .dim { color: #6b7280; font-size: 0.8rem; }
+
+    /* ── Exercise checkbox rows ──────────────────────────────────────────── */
+    .exercise-row { transition: opacity 0.3s; }
+    .exercise-row.completed { opacity: 0.45; }
+    .exercise-row.completed .label-col { text-decoration: line-through; color: #4b5563; }
+
+    .ex-check-wrap {
+      display: flex; align-items: center; gap: 0.6rem;
+    }
+    .ex-checkbox {
+      appearance: none; -webkit-appearance: none;
+      width: 18px; height: 18px; border-radius: 5px;
+      border: 2px solid rgba(96,165,250,0.5);
+      background: rgba(255,255,255,0.05);
+      cursor: pointer; flex-shrink: 0;
+      transition: background 0.2s, border-color 0.2s;
+      position: relative;
+    }
+    .ex-checkbox:checked {
+      background: #007bff; border-color: #007bff;
+    }
+    .ex-checkbox:checked::after {
+      content: '';
+      position: absolute; left: 4px; top: 1px;
+      width: 6px; height: 10px;
+      border: 2px solid #fff;
+      border-top: none; border-left: none;
+      transform: rotate(45deg);
+    }
+
+    /* ── Workout progress bar ────────────────────────────────────────────── */
+    .workout-progress-wrap {
+      margin-top: 0.75rem;
+      background: rgba(255,255,255,0.06);
+      border-radius: 999px; height: 5px; overflow: hidden;
+    }
+    .workout-progress-bar {
+      height: 100%; border-radius: 999px;
+      background: #007bff;
+      transition: width 0.4s ease;
+      width: 0%;
+    }
+    .workout-progress-label {
+      font-size: 0.72rem; color: #6b7280; margin-top: 0.4rem; text-align: right;
+    }
+
+    .meal-badge {
+      display: inline-block; font-size: 0.68rem; font-weight: 700;
+      padding: 0.15rem 0.55rem; border-radius: 20px; margin-left: 0.4rem; vertical-align: middle;
+    }
+    .meal-badge.pre  { background: rgba(245,158,11,0.2); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3); }
+    .meal-badge.post { background: rgba(52,211,153,0.2); color: #34d399; border: 1px solid rgba(52,211,153,0.3); }
+
+    .plan-actions { display: flex; gap: 0.75rem; margin-top: 1rem; flex-wrap: wrap; }
+    .btn-save-plan {
+      background: rgba(0,200,100,0.15); border: 1px solid rgba(0,200,100,0.3);
+      color: #4ade80; border-radius: 8px; padding: 0.45rem 1.1rem;
+      font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: background 0.2s;
+    }
+    .btn-save-plan:hover { background: rgba(0,200,100,0.25); }
+    .btn-clear-plan {
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+      color: #8b949e; border-radius: 8px; padding: 0.45rem 1.1rem;
+      font-size: 0.85rem; cursor: pointer; transition: background 0.2s;
+    }
+    .btn-clear-plan:hover { background: rgba(255,255,255,0.1); }
+
+    .ai-error { color: #f87171; font-size: 0.88rem; margin-top: 0.75rem; display: none; }
+    .ai-error.visible { display: block; }
+
+    .ai-badge {
+      background: rgba(0,123,255,0.15); color: #60a5fa;
+      border: 1px solid rgba(0,123,255,0.25);
+      font-size: 0.75rem; padding: 0.4rem 0.8rem; border-radius: 20px; white-space: nowrap;
+    }
+
+    /* ── Streak bar ──────────────────────────────────────────────────────── */
+    .streak-bar {
+      background: linear-gradient(135deg, #0d1117 0%, #1a2332 100%);
+      border-radius: 16px; padding: 1.25rem 1.75rem;
+      display: flex; align-items: center; gap: 2rem; flex-wrap: wrap;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    }
+    .streak-item { display: flex; flex-direction: column; align-items: center; min-width: 80px; }
+    .streak-number { font-size: 2.2rem; font-weight: 900; line-height: 1; }
+    .streak-number.fire   { color: #f97316; }
+    .streak-number.trophy { color: #facc15; }
+    .streak-label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.8px; color: #6b7280; font-weight: 600; margin-top: 0.2rem; }
+    .streak-divider { width: 1px; height: 50px; background: rgba(255,255,255,0.08); }
+    .streak-dots { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+    .streak-dot { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; }
+    .streak-dot.done       { background: rgba(249,115,22,0.25); color: #f97316; border: 1.5px solid rgba(249,115,22,0.5); }
+    .streak-dot.today-done { background: rgba(249,115,22,0.5);  color: #fff;    border: 2px solid #f97316; }
+    .streak-dot.empty      { background: rgba(255,255,255,0.05); color: #374151; border: 1.5px solid rgba(255,255,255,0.08); }
+    .streak-message { color: #e2e8f0; font-size: 0.9rem; font-weight: 600; }
+    .streak-sub     { color: #6b7280; font-size: 0.78rem; margin-top: 0.15rem; }
+
+    /* ── Weekly schedule ─────────────────────────────────────────────────── */
+    .ai-output { margin-top: 1.8rem; background: rgba(255,255,255,0.05); border: 1.5px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 1.5rem; display: none; max-height: 420px; overflow-y: auto; }
+    .ai-output.visible { display: block; }
+    .ai-output pre { color: #e2e8f0; white-space: pre-wrap; word-wrap: break-word; font-family: 'Segoe UI', system-ui, sans-serif; font-size: 0.92rem; line-height: 1.7; margin: 0; }
+    .saved-plan-card { background: rgba(0,200,100,0.07); border: 1px solid rgba(0,200,100,0.2); border-radius: 12px; padding: 1rem 1.25rem; margin-top: 1.2rem; display: none; }
+    .saved-plan-card.visible { display: block; }
+    .saved-plan-card .saved-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.8px; color: #4ade80; font-weight: 700; margin-bottom: 0.5rem; }
+    .saved-plan-card pre { color: #cbd5e1; font-family: 'Segoe UI', system-ui, sans-serif; font-size: 0.88rem; line-height: 1.65; white-space: pre-wrap; margin: 0; max-height: 240px; overflow-y: auto; }
+    .cursor { display: inline-block; width: 2px; height: 1em; background: #007bff; animation: blink 0.8s step-end infinite; vertical-align: text-bottom; margin-left: 1px; }
+    @keyframes blink { 50% { opacity: 0; } }
+  </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+  <div class="container">
+    <a class="navbar-brand" href="#"><i class="fas fa-dumbbell"></i> Fitness Dashboard</a>
+    <div class="ms-auto d-flex align-items-center gap-3">
+      <span class="text-white opacity-75 small"><i class="fas fa-user me-1"></i>{{ session['username'] }}</span>
+      <a href="/logout" class="btn btn-outline-light btn-sm"><i class="fas fa-sign-out-alt me-1"></i>Logout</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container mt-4">
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       SECTION 1 — UNIFIED AI PLANNER
+  ════════════════════════════════════════════════════════════════════════ -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="ai-hero">
+
+        <!-- Header + quick nav links to Flask routes -->
+        <div class="d-flex align-items-start justify-content-between flex-wrap gap-2 mb-2">
+          <div>
+            <h2><i class="fas fa-magic me-2" style="color:#f59e0b"></i>My Daily Plan</h2>
+            <p class="subtitle">Describe your goal — get a full workout and meal plan built around it.</p>
+          </div>
+          <span class="ai-badge">NVIDIA: Nemotron Nano </span>
+        </div>
+
+        <!-- Flask route navigation -->
+        
+
+        <div class="ai-form">
+          <div class="ai-section-label"><i class="fas fa-bullseye me-1"></i> Your objective</div>
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label">Tell the AI what you want to achieve</label>
+              <textarea class="form-control" id="mpObjective" placeholder="e.g. I want to lose 5 kg in 2 months. I'm vegetarian, I train 3× a week, I have bad knees, and I prefer morning workouts. I can do about 45 minutes per session."></textarea>
+            </div>
+          </div>
+
+          <div class="ai-section-label"><i class="fas fa-sliders-h me-1"></i> Quick settings</div>
+          <div class="row g-3">
+            <div class="col-md-3">
+              <label class="form-label">Fitness level</label>
+              <select class="form-select" id="mpLevel">
+                <option value="beginner">Beginner</option>
+                <option value="intermediate" selected>Intermediate</option>
+                <option value="advanced">Advanced</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Daily calorie target</label>
+              <select class="form-select" id="mpCalories">
+                <option value="1500">1 500 kcal</option>
+                <option value="1800">1 800 kcal</option>
+                <option value="2000" selected>2 000 kcal</option>
+                <option value="2200">2 200 kcal</option>
+                <option value="2500">2 500 kcal</option>
+                <option value="2800">2 800 kcal</option>
+                <option value="3000">3 000 kcal</option>
+                <option value="3500">3 500 kcal</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Available equipment</label>
+              <input type="text" class="form-control" id="mpEquipment" placeholder="dumbbells, barbell, none…">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Allergies / intolerances</label>
+              <input type="text" class="form-control" id="mpAllergies" placeholder="nuts, gluten, lactose…">
+            </div>
+            <div class="col-md-3">
+          <label class="form-label">Weight</label>
+            <input type="number" class="form-control" placeholder="(in pounds)">
+          </div>
+          <div class="col-md-3">
+          <label class="form-label">Height</label>
+            <input type="number" class="form-control" placeholder="(in inches)">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Age</label>
+            <input type="number" class="form-control" placeholder="(in years)">
+        </div>
+
+          </div>
+
+          <div class="row g-3 mt-1">
+            <div class="col-md-4 col-lg-3">
+              <button class="btn-generate" id="mpBtn" onclick="generatePlan()">
+                <i class="fas fa-bolt me-1"></i> Generate My Plan
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        
+
+        <!-- AI Thinking loading bar -->
+        <div class="loading-overlay" id="mpLoading">
+          <div class="thinking-bar-wrap">
+            <div class="thinking-bar"></div>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <div class="thinking-dots">
+              <span></span><span></span><span></span>
+            </div>
+            <p style="margin:0">AI is thinking — building your personalised plan…</p>
+          </div>
+        </div>
+
+        <div class="ai-error" id="mpError"></div>
+
+        <!-- Plan result -->
+        <div class="plan-result" id="planResult">
+
+          <!-- Meals -->
+          <div class="plan-section">
+            <div class="plan-section-title food"><i class="fas fa-utensils"></i> Full-day meal plan</div>
+            <table class="plan-table">
+              <thead><tr><th style="width:28%">Meal</th><th style="width:15%">Duration</th><th>What to eat</th></tr></thead>
+              <tbody id="foodRows"></tbody>
+            </table>
+          </div>
+
+          <!-- Warm-up (with checkboxes) -->
+          <div class="plan-section">
+            <div class="plan-section-title warmup"><i class="fas fa-fire-alt"></i> Warm-up</div>
+            <table class="plan-table">
+              <thead><tr><th style="width:32px"></th><th style="width:28%">Exercise</th><th style="width:15%">Duration</th><th>How to do it</th></tr></thead>
+              <tbody id="warmupRows"></tbody>
+            </table>
+          </div>
+
+          <!-- Main workout (with checkboxes + progress bar) -->
+          <div class="plan-section">
+            <div class="plan-section-title workout"><i class="fas fa-dumbbell"></i> Main workout</div>
+            <div class="workout-progress-wrap">
+              <div class="workout-progress-bar" id="workoutProgressBar"></div>
+            </div>
+            <div class="workout-progress-label" id="workoutProgressLabel">0 of 0 exercises done</div>
+            <table class="plan-table mt-2">
+              <thead><tr><th style="width:32px"></th><th style="width:28%">Exercise</th><th style="width:15%">Sets × Reps</th><th>Coaching cue</th></tr></thead>
+              <tbody id="workoutRows"></tbody>
+            </table>
+          </div>
+
+          <!-- Cool-down (with checkboxes) -->
+          <div class="plan-section">
+            <div class="plan-section-title cooldown"><i class="fas fa-snowflake"></i> Cool-down</div>
+            <table class="plan-table">
+              <thead><tr><th style="width:32px"></th><th style="width:28%">Stretch</th><th style="width:15%">Duration</th><th>How to do it</th></tr></thead>
+              <tbody id="cooldownRows"></tbody>
+            </table>
+          </div>
+
+          <!-- Sources -->
+          <div class="plan-section">
+            <div class="plan-section-title sources"><i class="fas fa-book-open"></i> Sources</div>
+            <ul id="sourcesList" style="margin:0;padding-left:1.2rem;color:#8b949e;font-size:0.83rem;line-height:1.8;"></ul>
+          </div>
+
+          <div class="plan-actions">
+            <button class="btn-save-plan" onclick="savePlan()"><i class="fas fa-save me-1"></i>Save Plan</button>
+            <button class="btn-clear-plan" onclick="clearPlan()"><i class="fas fa-times me-1"></i>Clear</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       SECTION 2 — STREAK BAR
+  ════════════════════════════════════════════════════════════════════════ -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="streak-bar">
+        <div class="streak-item">
+          <div class="streak-number fire" id="streakCount">{{ data.streak }}</div>
+          <div class="streak-label">Day streak</div>
+        </div>
+        <div class="streak-divider"></div>
+        <div class="streak-item">
+          <div class="streak-number trophy" id="longestStreak">{{ data.longest_streak }}</div>
+          <div class="streak-label">Best streak</div>
+        </div>
+        <div class="streak-divider"></div>
+        <div>
+          <div class="streak-message" id="streakMessage">Keep going!</div>
+          <div class="streak-sub" id="streakSub">Generate a plan every day to build your streak</div>
+          <div class="streak-dots mt-2" id="streakDots"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       SECTION 3 — WEEKLY SCHEDULE
+  ════════════════════════════════════════════════════════════════════════ -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="ai-hero">
+        <div class="d-flex align-items-start justify-content-between flex-wrap gap-2 mb-1">
+          <div>
+            <h2><i class="fas fa-calendar-alt me-2" style="color:#007bff"></i>Weekkly Schedule</h2>
+            <p class="subtitle">Generate a structured weekly training schedule.</p>
+          </div>
+          <span class="ai-badge">Gemma 4 (streaming)</span>
+        </div>
+
+        <div class="ai-form">
+          <div class="row g-3">
+            <div class="col-md-3">
+              <label class="form-label">Type of workout</label>
+              <select class="form-select" id="sGoal">
+                <option value="cardio">Cardio</option>
+                <option value="build muscle">Muscle</option>
+                <option value="improve flexibility" selected>Flexibility</option>
+                <option value="general fitness">General Fitness</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Days / week</label>
+              <select class="form-select" id="sDays">
+                <option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Duration (mins)</label>
+              <select class="form-select" id="sDuration">
+                <option>30</option><option>45</option><option selected>60</option><option>75</option><option>90</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Level</label>
+              <select class="form-select" id="sLevel">
+                <option>beginner</option><option selected>intermediate</option><option>advanced</option>
+              </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+              <button class="btn-generate" id="schedBtn" onclick="generateSchedule()">
+                <i class="fas fa-bolt me-1"></i> Generate
+              </button>
+            </div>
+          </div>
+          <div class="row g-3 mt-0">
+            <div class="col-md-6">
+              <label class="form-label">Available equipment</label>
+              <input type="text" class="form-control" id="sEquipment" placeholder="dumbbells, barbell, resistance bands, none">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Injuries / limitations</label>
+              <input type="text" class="form-control" id="sInjuries" placeholder="bad knees, lower back pain, none">
+            </div>
+          </div>
+        </div>
+
+        <!-- AI Thinking loading bar for schedule -->
+        <div class="loading-overlay" id="schedLoading">
+          <div class="thinking-bar-wrap">
+            <div class="thinking-bar"></div>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <div class="thinking-dots">
+              <span></span><span></span><span></span>
+            </div>
+            <p style="margin:0">Writing your weekly schedule…</p>
+          </div>
+        </div>
+
+        <div class="ai-output" id="scheduleOutput">
+          <pre id="scheduleText"></pre>
+          <div style="display:flex;gap:.75rem;margin-top:1rem;flex-wrap:wrap;" id="scheduleActions">
+            <button class="btn-save-plan" onclick="saveSchedule()"><i class="fas fa-save me-1"></i>Save Schedule</button>
+            <button class="btn-clear-plan" onclick="clearSchedule()"><i class="fas fa-times me-1"></i>Clear</button>
+          </div>
+        </div>
+        <div class="ai-error" id="scheduleError"></div>
+
+        {% if data.schedule %}
+        <div class="saved-plan-card visible" id="savedScheduleCard">
+          <div class="saved-label"><i class="fas fa-bookmark me-1"></i>Saved Schedule</div>
+          <pre>{{ data.schedule }}</pre>
+        </div>
+        {% else %}
+        <div class="saved-plan-card" id="savedScheduleCard">
+          <div class="saved-label"><i class="fas fa-bookmark me-1"></i>Saved Schedule</div>
+          <pre id="savedScheduleText"></pre>
+        </div>
+        {% endif %}
+
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+/* ═══════════════════════════════════════════════════════════════════════════
+   STREAK UI
+═══════════════════════════════════════════════════════════════════════════ */
+function renderStreak(streak, longest) {
+  document.getElementById('streakCount').textContent   = streak;
+  document.getElementById('longestStreak').textContent = longest;
+  const msgs = [
+    ['Start your streak today! 🚀', 'Generate a plan daily to build momentum.'],
+    ['1 day down! 🔥', 'Come back tomorrow to keep it going.'],
+    ['2 days — you\'re building a habit! 💪', 'Consistency is the key.'],
+    ['3 days strong! 🎯', 'Almost a full week — don\'t stop now.'],
+    ['4 day streak! 🎉', 'You\'re in the zone.'],
+    ['5 day streak! 🏅', 'One of the top performers. Keep pushing.'],
+    ['6 day streak! 🌟', 'One more for a perfect week!'],
+    ['7 day streak! 🏆', 'A perfect week. You\'re unstoppable!'],
+  ];
+  const idx = Math.min(streak, msgs.length - 1);
+  document.getElementById('streakMessage').textContent = msgs[idx][0];
+  document.getElementById('streakSub').textContent     = msgs[idx][1];
+
+  const dotsEl = document.getElementById('streakDots');
+  dotsEl.innerHTML = '';
+  const days = ['M','T','W','T','F','S','S'];
+  for (let i = 0; i < 7; i++) {
+    const d = document.createElement('div');
+    const filled  = i < (streak % 7 || (streak > 0 && streak % 7 === 0 ? 7 : 0));
+    const isToday = i === (streak - 1) % 7 && streak > 0;
+    d.className   = 'streak-dot ' + (isToday ? 'today-done' : filled ? 'done' : 'empty');
+    d.textContent = days[i];
+    dotsEl.appendChild(d);
+  }
+}
+renderStreak({{ data.streak }}, {{ data.longest_streak }});
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   EXERCISE CHECKBOX HELPERS
+═══════════════════════════════════════════════════════════════════════════ */
+let workoutTotal = 0;
+let workoutDone  = 0;
+
+function updateWorkoutProgress() {
+  const pct   = workoutTotal > 0 ? Math.round((workoutDone / workoutTotal) * 100) : 0;
+  document.getElementById('workoutProgressBar').style.width  = pct + '%';
+  document.getElementById('workoutProgressLabel').textContent =
+    workoutDone + ' of ' + workoutTotal + ' exercise' + (workoutTotal !== 1 ? 's' : '') + ' done';
+}
+
+function makeCheckboxCell(groupId) {
+  const td  = document.createElement('td');
+  td.style.paddingRight = '0.5rem';
+  const cb  = document.createElement('input');
+  cb.type   = 'checkbox';
+  cb.className = 'ex-checkbox';
+  cb.addEventListener('change', function() {
+    const row = this.closest('tr');
+    row.classList.toggle('completed', this.checked);
+    if (groupId === 'workout') {
+      workoutDone += this.checked ? 1 : -1;
+      updateWorkoutProgress();
+    }
+  });
+  td.appendChild(cb);
+  return td;
+}
+
+function makeRow(cells, groupId) {
+  const tr = document.createElement('tr');
+  tr.className = 'exercise-row';
+
+  if (groupId) {
+    tr.appendChild(makeCheckboxCell(groupId));
+  }
+
+  cells.forEach((c, i) => {
+    const td = document.createElement('td');
+    td.innerHTML = c;
+    if (i === 0) td.className = 'label-col';
+    tr.appendChild(td);
+  });
+  return tr;
+}
+
+function isMealPrePost(food) {
+  const text = (food.food + ' ' + food.description).toLowerCase();
+  return {
+    isPre:  text.includes('pre-workout') || text.includes('before workout'),
+    isPost: text.includes('post-workout') || text.includes('after workout') || text.includes('recovery meal'),
+  };
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RENDER PLAN
+═══════════════════════════════════════════════════════════════════════════ */
+function renderPlan(plan) {
+  // Meals (no checkboxes)
+  const foodBody = document.getElementById('foodRows');
+  foodBody.innerHTML = '';
+  (plan.plan || []).forEach(item => {
+    const { isPre, isPost } = isMealPrePost(item);
+    const badges = (isPre  ? '<span class="meal-badge pre">Pre-workout</span>'  : '') +
+                   (isPost ? '<span class="meal-badge post">Post-workout</span>' : '');
+    const tr = document.createElement('tr');
+    ['food','duration','description'].forEach((key, i) => {
+      const td = document.createElement('td');
+      if (key === 'food')        td.innerHTML = item.food + badges;
+      else if (key === 'duration') td.innerHTML = `<span class="dim">${item.duration || '—'}</span>`;
+      else                       td.textContent = item.description || '';
+      if (i === 0) td.className = 'label-col';
+      tr.appendChild(td);
+    });
+    foodBody.appendChild(tr);
+  });
+
+  // Warm-up (checkboxes)
+  const wuBody = document.getElementById('warmupRows');
+  wuBody.innerHTML = '';
+  (plan.warm_up || []).forEach(item => {
+    wuBody.appendChild(makeRow(
+      [item.name, `<span class="dim">${item.duration || '—'}</span>`, item.how || ''],
+      'warmup'
+    ));
+  });
+
+  // Main workout (checkboxes + progress)
+  const mwBody = document.getElementById('workoutRows');
+  mwBody.innerHTML = '';
+  workoutTotal = (plan.main_workout || []).length;
+  workoutDone  = 0;
+  updateWorkoutProgress();
+  (plan.main_workout || []).forEach(item => {
+    const setsReps = item.sets && item.reps ? `${item.sets} × ${item.reps}` : (item.sets || item.reps || '—');
+    mwBody.appendChild(makeRow(
+      [item.name, `<span class="dim">${setsReps}</span>`, item.how || ''],
+      'workout'
+    ));
+  });
+
+  // Cool-down (checkboxes)
+  const cdBody = document.getElementById('cooldownRows');
+  cdBody.innerHTML = '';
+  (plan.cool_down || []).forEach(item => {
+    cdBody.appendChild(makeRow(
+      [item.name, `<span class="dim">${item.duration || '—'}</span>`, item.how || ''],
+      'cooldown'
+    ));
+  });
+
+  // Sources
+  const srcList = document.getElementById('sourcesList');
+  srcList.innerHTML = '';
+  (plan.sources || []).forEach(s => {
+    const li = document.createElement('li');
+    li.textContent = s;
+    srcList.appendChild(li);
+  });
+
+  document.getElementById('planResult').classList.add('visible');
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   GENERATE PLAN
+═══════════════════════════════════════════════════════════════════════════ */
+let lastPlanData = null;
+
+async function generatePlan() {
+  const btn    = document.getElementById('mpBtn');
+  const loading = document.getElementById('mpLoading');
+  const errEl  = document.getElementById('mpError');
+  const result = document.getElementById('planResult');
+
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Working…';
+  loading.classList.add('visible');
+  result.classList.remove('visible');
+  errEl.classList.remove('visible');
+
+  try {
+    const resp = await fetch('/generate_plan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        objective: document.getElementById('mpObjective').value || 'general fitness',
+        level:     document.getElementById('mpLevel').value,
+        calories:  document.getElementById('mpCalories').value,
+        equipment: document.getElementById('mpEquipment').value || 'none',
+        allergies: document.getElementById('mpAllergies').value || '',
+      })
+    });
+    const data = await resp.json();
+    if (data.status !== 'success') throw new Error(data.message || 'Unknown error');
+    lastPlanData = data.plan;
+    renderPlan(data.plan);
+    renderStreak(data.streak, data.longest_streak);
+  } catch (err) {
+    errEl.textContent = '⚠ ' + err.message;
+    errEl.classList.add('visible');
+  } finally {
+    loading.classList.remove('visible');
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-bolt me-1"></i> Generate My Plan';
+  }
+}
+
+function savePlan() {
+  if (!lastPlanData) return;
+  fetch('/save_plan', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ plan_text: JSON.stringify(lastPlanData, null, 2) })
+  }).then(() => {
+    const btn = document.querySelector('.btn-save-plan');
+    btn.innerHTML = '<i class="fas fa-check me-1"></i> Saved!';
+    setTimeout(() => { btn.innerHTML = '<i class="fas fa-save me-1"></i> Save Plan'; }, 2000);
+  });
+}
+
+function clearPlan() {
+  document.getElementById('planResult').classList.remove('visible');
+  lastPlanData = null;
+  workoutDone = workoutTotal = 0;
+  updateWorkoutProgress();
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   WEEKLY SCHEDULE (streaming)
+═══════════════════════════════════════════════════════════════════════════ */
+let schedText = '';
+
+async function generateSchedule() {
+  const btn    = document.getElementById('schedBtn');
+  const loading = document.getElementById('schedLoading');
+  const output = document.getElementById('scheduleOutput');
+  const pre    = document.getElementById('scheduleText');
+  const acts   = document.getElementById('scheduleActions');
+  const errEl  = document.getElementById('scheduleError');
+
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Generating…';
+  loading.classList.add('visible');
+  output.classList.remove('visible');
+  pre.textContent = '';
+  acts.style.display = 'none';
+  errEl.classList.remove('visible');
+  schedText = '';
+
+  const cursor = document.createElement('span');
+  cursor.className = 'cursor';
+
+  try {
+    const resp = await fetch('/generate_schedule', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        goal:      document.getElementById('sGoal').value,
+        days:      document.getElementById('sDays').value,
+        duration:  document.getElementById('sDuration').value,
+        level:     document.getElementById('sLevel').value,
+        equipment: document.getElementById('sEquipment').value || 'none',
+        injuries:  document.getElementById('sInjuries').value  || 'none',
+      })
+    });
+    if (!resp.ok) throw new Error((await resp.json()).error || 'Request failed');
+
+    loading.classList.remove('visible');
+    output.classList.add('visible');
+    pre.appendChild(cursor);
+
+    const reader  = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let   buffer  = '';
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const payload = line.slice(6);
+        if (payload === '[DONE]') break;
+        try {
+          const parsed = JSON.parse(payload);
+          if (parsed.error) throw new Error(parsed.error);
+          if (parsed.content) {
+            schedText += parsed.content;
+            pre.textContent = schedText;
+            pre.appendChild(cursor);
+            output.scrollTop = output.scrollHeight;
+          }
+        } catch(e) { console.warn(e); }
+      }
+    }
+  } catch (err) {
+    loading.classList.remove('visible');
+    errEl.textContent = '⚠ ' + err.message;
+    errEl.classList.add('visible');
+  } finally {
+    cursor.remove();
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-bolt me-1"></i> Generate';
+    if (schedText) acts.style.display = 'flex';
+  }
+}
+
+function saveSchedule() {
+  if (!schedText) return;
+  fetch('/save_schedule', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ schedule: schedText })
+  }).then(() => {
+    const card = document.getElementById('savedScheduleCard');
+    const p = card.querySelector('pre');
+    if (p) p.textContent = schedText;
+    card.classList.add('visible');
+    const btn = document.querySelector('#scheduleActions .btn-save-plan');
+    if (btn) { btn.innerHTML = '<i class="fas fa-check me-1"></i> Saved!'; setTimeout(() => { btn.innerHTML = '<i class="fas fa-save me-1"></i> Save Schedule'; }, 2000); }
+  });
+}
+
+function clearSchedule() {
+  document.getElementById('scheduleOutput').classList.remove('visible');
+  document.getElementById('scheduleText').textContent = '';
+  document.getElementById('scheduleActions').style.display = 'none';
+  schedText = '';
+}
+</script>
+</body>
+</html>
