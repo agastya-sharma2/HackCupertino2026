@@ -8,7 +8,7 @@ Just give the website details about your situation (cardio workout, agility trai
 ## How we built it
 We used the Python module Flask to build the website and we used Openrouter for the AI models by using their APIs. We also used Html, CSS, and Javascript.
 ## Challenges we ran into
-It was hard to visualize our final goal so there was a lot of disagreements. Finding a reliable AI provider was also a challenging journey. The code was also getting tricky to navigate in.
+It was hard to visualize our final goal so there was a lot of disagreements. Finding a reliable AI provider was also a challenging journey. The code was also getting tricky to navigate in. Also, this code might not be fully working with the AI since the API keys are old.
 ## Accomplishments that we're proud of
 Despite the disagreements, we pulled through and have a fully working product to show.
 ## What we learned
